@@ -25,7 +25,8 @@ end
 
 function BilinearSamplerBHWD:check(input, gradOutput)
    local inputImages = input[1]
-	local grids = input[2]
+   local grids = input[2]
+      
 
    assert(inputImages:isContiguous(), 'Input images have to be contiguous')
    assert(inputImages:nDimension()==4)
@@ -55,13 +56,11 @@ function BilinearSamplerBHWD:updateOutput(input)
    local _grids = input[2]
 
    local inputImages, grids
-   if _inputImages:nDimension()==3 then
-      inputImages = addOuterDim(_inputImages)
-      grids = addOuterDim(_grids)
-   else
-      inputImages = _inputImages
-      grids = _grids
-   end
+   if _inputImages:nDimension()==3 then inputImages = addOuterDim(_inputImages)   
+   else inputImages = _inputImages end
+   
+   if _grids:nDimension() == 3 then grids = addOuterDim(_grids)
+   else grids = _grids end
 
    local input = {inputImages, grids}
 
@@ -74,30 +73,30 @@ function BilinearSamplerBHWD:updateOutput(input)
    if _inputImages:nDimension()==3 then
       self.output=self.output:select(1,1)
    end
-	
+        
    return self.output
 end
 
 function BilinearSamplerBHWD:updateGradInput(_input, _gradOutput)
-	local _inputImages = _input[1]
-	local _grids = _input[2]
+        local _inputImages = _input[1]
+        local _grids = _input[2]
 
    local inputImages, grids, gradOutput
-   if _inputImages:nDimension()==3 then
-      inputImages = addOuterDim(_inputImages)
-      grids = addOuterDim(_grids)
-      gradOutput = addOuterDim(_gradOutput)
-   else
-      inputImages = _inputImages
-      grids = _grids
-      gradOutput = _gradOutput
-   end
+   --modify the dimension of input
+   if _inputImages:nDimension()==3 then inputImages = addOuterDim(_inputImages)   
+   else inputImages = _inputImages end
+   
+   if _grids:nDimension() == 3 then grids = addOuterDim(_grids)
+   else grids = _grids end
+   
+   if _gradOutput:nDimension() == 3 then gradOutput = addOuterDim(_gradOutput)
+   else gradOutput = _gradOutput end
 
    local input = {inputImages, grids}
 
    self:check(input, gradOutput)
-	for i=1,#input do
-	   self.gradInput[i] = self.gradInput[i] or input[1].new()
+        for i=1,#input do
+           self.gradInput[i] = self.gradInput[i] or input[1].new()
       self.gradInput[i]:resizeAs(input[i]):zero()
    end
 
