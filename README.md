@@ -32,7 +32,7 @@ nn.AffineTransformMatrixGenerator(useRotation, useScale, useTranslation)
 -- takes a B x nbParams tensor as inputs
 -- nbParams depends on the contrained transformation
 -- The parameters for the selected transformation(s) should be supplied in the
--- following order: rotationAngle, scaleFactor, translationX, translationY
+-- following order: rotationAngle, scaleFactorX, scaleFactorY, translationX, translationY
 -- If no transformation is specified, it generates a generic affine transformation (nbParams = 6)
 -- outputs B x 2 x 3 affine transform matrices
 ```
