@@ -17,7 +17,7 @@ the module is equivalent to nn.View(2,3):setNumInputDims(2).
 
 Any combination of the 3 transformations (rotation, scale and/or translation)
 can be used. The transform parameters must be supplied in the following order:
-rotation (1 param), scale (1 param) then translation (2 params).
+rotation (1 param), scale (2 params) then translation (2 params).
 
 Example:
 AffineTransformMatrixGenerator(true,false,true) expects as input a tensor of
@@ -46,7 +46,7 @@ function ATMG:check(input)
       numberParameters = numberParameters + 1
     end
     if self.useScale then
-      numberParameters = numberParameters + 1
+      numberParameters = numberParameters + 2
     end
     if self.useTranslation then
       numberParameters = numberParameters + 2
@@ -105,12 +105,13 @@ function ATMG:updateOutput(_tranformParams)
     self.rotationOutput = completeTransformation:narrow(2,1,2):narrow(3,1,2):clone()
 
     if self.useScale then
-      local scaleFactors = transformParams:select(2,paramIndex)
-      paramIndex = paramIndex + 1
+      local scaleFactorsX = transformParams:select(2,paramIndex)
+      local scaleFactorsY = transformParams:select(2,paramIndex+1)
+      paramIndex = paramIndex + 2
 
       transformationBuffer:zero()
-      transformationBuffer:select(3,1):select(2,1):copy(scaleFactors)
-      transformationBuffer:select(3,2):select(2,2):copy(scaleFactors)
+      transformationBuffer:select(3,1):select(2,1):copy(scaleFactorsX)
+      transformationBuffer:select(3,2):select(2,2):copy(scaleFactorsY)
       transformationBuffer:select(3,3):select(2,3):add(1)
 
       completeTransformation = torch.bmm(completeTransformation, transformationBuffer)
@@ -173,18 +174,18 @@ function ATMG:updateGradInput(_tranformParams, _gradParams)
     end
 
     if self.useScale then
-      local gradInputScaleparams = self.gradInput:narrow(2,paramIndex,1)
-      local sParams = transformParams:select(2,paramIndex)
-      paramIndex = paramIndex-1
+      local gradInputScaleparams = self.gradInput:narrow(2,paramIndex-1,2)
+      local sParams = torch.Tensor(batchSize, 1, 2):typeAs(transformParams)
+      sParams:select(3,1):copy(transformParams:select(2,paramIndex-1))
+      sParams:select(3,2):copy(transformParams:select(2,paramIndex))
+      paramIndex = paramIndex-2
 
       local selectedOutput = self.rotationOutput
       local selectedGradParams = gradParams:narrow(2,1,2):narrow(3,1,2)
-      gradInputScaleparams:copy(torch.cmul(selectedOutput, selectedGradParams):sum(2):sum(3))
+      gradInputScaleparams:copy(torch.cmul(selectedOutput, selectedGradParams):sum(2))
 
-      gradParams:select(3,1):select(2,1):cmul(sParams)
-      gradParams:select(3,2):select(2,1):cmul(sParams)
-      gradParams:select(3,1):select(2,2):cmul(sParams)
-      gradParams:select(3,2):select(2,2):cmul(sParams)
+      gradParams:narrow(2,1,1):narrow(3,1,2):cmul(sParams)
+      gradParams:narrow(2,2,1):narrow(3,1,2):cmul(sParams)
     end
 
     if self.useRotation then
